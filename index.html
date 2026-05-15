@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stray Cat ep01 — Story Board</title>
+<!--
+  ============================================================
+  Stray Cat ep01 — インタラクティブ・ストーリーボード
+  ============================================================
+  共同制作者との共有用資料。単一HTMLファイル・外部ライブラリ依存なし。
+
+  【編集方法】
+  すべてのデータは下の <script> 内の DATA セクションに集約されています。
+  - characters[] : 登場人物。追加/編集はこの配列を編集
+  - relations[]  : 相関図の関係線。from/to は characters の id を指定
+  - scenes[]     : タイムラインの22シーン
+  - transitions[]: 主要転換点
+  - motifs[]     : モチーフ出現マップ
+  データを編集すれば、相関図・タイムライン・人物リストすべてに自動反映されます。
+  ============================================================
+-->
+<style>
+  :root{
+    --bg:#0a0e1a; --bg2:#131a2e; --panel:rgba(20,28,50,0.88); --panel2:rgba(28,38,64,0.7);
+    --border:#2a3a5c; --text:#c8d0e0; --dim:#7a86a0; --bright:#eef2fa;
+    --cyan:#34e0e0; --magenta:#e045a0; --gold:#d4a843; --silver:#b8c0d0;
+    --red:#e0594a; --green:#4ac88a; --purple:#9a6ad0; --white:#e8e8f0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg,#0a0e1a 0%,#0d1322 50%,#0a0e1a 100%);
+    color:var(--text); font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    line-height:1.7; min-height:100vh; padding-bottom:60px;
+  }
+  a{color:var(--cyan);}
+  header{
+    padding:32px 40px 18px; border-bottom:1px solid var(--border);
+    background:rgba(8,12,22,0.6); position:relative; overflow:hidden;
+  }
+  header::after{
+    content:""; position:absolute; top:0; right:0; width:300px; height:100%;
+    background:radial-gradient(circle at 80% 30%, rgba(52,224,224,0.08), transparent 70%);
+    pointer-events:none;
+  }
+  h1{
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif; font-size:2.4rem;
+    letter-spacing:.08em; color:var(--bright); font-weight:600;
+  }
+  h1 .sub{font-size:1rem; color:var(--cyan); letter-spacing:.2em; display:block; margin-top:4px;}
+  .tagline{color:var(--dim); margin-top:10px; font-size:.92rem;}
+  nav{
+    display:flex; gap:4px; padding:0 40px; background:rgba(8,12,22,0.8);
+    border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50;
+    flex-wrap:wrap;
+  }
+  nav button{
+    background:none; border:none; color:var(--dim); padding:14px 22px;
+    font-size:.95rem; cursor:pointer; border-bottom:2px solid transparent;
+    font-family:inherit; transition:.2s; letter-spacing:.05em;
+  }
+  nav button:hover{color:var(--text);}
+  nav button.active{color:var(--cyan); border-bottom-color:var(--cyan);}
+  main{padding:32px 40px; max-width:1400px; margin:0 auto;}
+  .tab{display:none;}
+  .tab.active{display:block; animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  h2{
+    font-family:"Hiragino Mincho ProN",serif; font-size:1.5rem; color:var(--bright);
+    margin-bottom:16px; letter-spacing:.06em; border-left:3px solid var(--cyan);
+    padding-left:14px;
+  }
+  h3{font-size:1.1rem; color:var(--cyan); margin:24px 0 10px; letter-spacing:.04em;}
+  p{margin-bottom:10px;}
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:22px 26px; margin-bottom:20px;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .kv{display:grid; grid-template-columns:130px 1fr; gap:6px 14px; font-size:.92rem;}
+  .kv dt{color:var(--dim);}
+  .kv dd{color:var(--text);}
+  .badge{
+    display:inline-block; padding:2px 9px; border-radius:11px; font-size:.74rem;
+    letter-spacing:.04em; border:1px solid; margin:2px 3px 2px 0; white-space:nowrap;
+  }
+
+  /* ===== Overview: 三幕構成バー ===== */
+  .acts{display:flex; gap:6px; margin:18px 0;}
+  .act{
+    flex:1; background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+    padding:14px 16px; position:relative;
+  }
+  .act .lbl{font-size:.78rem; color:var(--gold); letter-spacing:.1em;}
+  .act .nm{font-size:1.05rem; color:var(--bright); margin:4px 0;}
+  .act .dur{font-size:.8rem; color:var(--dim);}
+  .act .parts{font-size:.78rem; color:var(--dim); margin-top:6px;}
+
+  /* ===== Characters ===== */
+  .char-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px;}
+  .char-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:16px 18px; cursor:pointer; transition:.2s; border-left-width:4px;
+  }
+  .char-card:hover{transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+  .char-card .nm{font-size:1.2rem; color:var(--bright); font-weight:600;}
+  .char-card .ro{font-size:.82rem; color:var(--cyan); margin-bottom:8px;}
+  .char-card .sp{font-size:.82rem; color:var(--dim);}
+  .char-card .fate{font-size:.76rem; margin-top:8px;}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; font-size:.82rem;}
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .legend i{width:14px; height:14px; border-radius:3px; display:inline-block;}
+
+  /* ===== Modal ===== */
+  .modal-bg{
+    display:none; position:fixed; inset:0; background:rgba(4,6,14,0.85);
+    z-index:100; padding:40px 20px; overflow-y:auto;
+  }
+  .modal-bg.open{display:block;}
+  .modal{
+    max-width:720px; margin:0 auto; background:var(--bg2);
+    border:1px solid var(--cyan); border-radius:10px; padding:28px 32px;
+    box-shadow:0 0 40px rgba(52,224,224,0.15);
+  }
+  .modal h3{margin-top:18px;}
+  .modal .close{
+    float:right; background:none; border:1px solid var(--border); color:var(--dim);
+    width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:1rem;
+  }
+  .modal .close:hover{color:var(--text); border-color:var(--text);}
+
+  /* ===== Relationship Map ===== */
+  #relmap-wrap{position:relative; background:var(--bg2); border:1px solid var(--border);
+    border-radius:8px; padding:36px 52px; overflow:hidden; min-height:720px;}
+  #relmap-svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+  .rel-zone{margin-bottom:8px;}
+  .rel-zone-lbl{font-size:.78rem; letter-spacing:.12em; color:var(--dim); margin-bottom:14px;
+    text-transform:uppercase;}
+  .rel-row{display:flex; gap:32px; flex-wrap:wrap; justify-content:space-evenly; margin-bottom:68px; position:relative; z-index:2;}
+  .rel-zone:last-child .rel-row{margin-bottom:10px;}
+  .node{
+    background:var(--panel); border:2px solid var(--border); border-radius:8px;
+    padding:10px 16px; min-width:140px; text-align:center; cursor:pointer;
+    transition:.2s; position:relative; z-index:2;
+  }
+  .node:hover{transform:scale(1.06); box-shadow:0 4px 18px rgba(0,0,0,0.5);}
+  .node .nm{font-size:1rem; color:var(--bright); font-weight:600;}
+  .node .ro{font-size:.74rem; color:var(--dim);}
+  .node.dim{opacity:.25;}
+  .rel-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:18px; font-size:.8rem;}
+  .rel-legend span{display:flex; align-items:center; gap:6px;}
+  .rel-legend i{width:22px; height:0; border-top:3px solid; display:inline-block;}
+  .edge-label{
+    font-size:10px; fill:var(--text); paint-order:stroke;
+    stroke:var(--bg2); stroke-width:4px; transition:opacity .2s;
+  }
+  .edge{transition:opacity .2s;}
+
+  /* ===== Timeline ===== */
+  .tl-part{margin-bottom:14px;}
+  .tl-part-hd{
+    display:flex; align-items:baseline; gap:12px; margin-bottom:8px;
+    border-bottom:1px dashed var(--border); padding-bottom:4px;
+  }
+  .tl-part-hd .p-nm{font-size:1.05rem; color:var(--gold); letter-spacing:.08em;}
+  .tl-part-hd .p-dur{font-size:.8rem; color:var(--dim);}
+  .tl-scenes{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
+  .scene-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:7px;
+    padding:11px 14px; cursor:pointer; transition:.18s; border-top:3px solid var(--cyan);
+  }
+  .scene-card:hover{background:var(--panel2); transform:translateY(-2px);}
+  .scene-card.turning{border-top-color:var(--gold);}
+  .scene-card .sc-id{font-size:.78rem; color:var(--cyan); letter-spacing:.05em;}
+  .scene-card.turning .sc-id{color:var(--gold);}
+  .scene-card .sc-tt{font-size:.95rem; color:var(--bright); margin:2px 0;}
+  .scene-card .sc-meta{font-size:.74rem; color:var(--dim);}
+  .scene-card .sc-tp{font-size:.7rem; color:var(--gold); margin-top:3px;}
+  .scene-detail{
+    display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--border);
+    font-size:.82rem;
+  }
+  .scene-card.open .scene-detail{display:block;}
+  .scene-detail .ev{color:var(--text); margin-bottom:6px;}
+  .scene-detail .lbl{color:var(--dim); font-size:.74rem;}
+
+  /* ===== Structure ===== */
+  .turn-list{display:flex; flex-direction:column; gap:8px;}
+  .turn-item{
+    display:grid; grid-template-columns:70px 130px 1fr; gap:14px; align-items:center;
+    background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+    padding:10px 16px; font-size:.88rem;
+  }
+  .turn-item .tm{color:var(--cyan); font-weight:600;}
+  .turn-item .fn{color:var(--gold); font-size:.82rem;}
+  .curve{
+    background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+    padding:14px 18px; margin-bottom:12px; font-size:.86rem;
+  }
+  .curve .ttl{color:var(--cyan); margin-bottom:6px;}
+  .curve code{
+    background:rgba(0,0,0,0.4); padding:2px 7px; border-radius:4px;
+    color:var(--text); font-size:.82rem;
+  }
+  .motif-table{width:100%; border-collapse:collapse; font-size:.84rem;}
+  .motif-table th,.motif-table td{
+    text-align:left; padding:7px 10px; border-bottom:1px solid var(--border);
+  }
+  .motif-table th{color:var(--dim); font-weight:normal; font-size:.78rem; letter-spacing:.06em;}
+  .motif-table td:first-child{color:var(--bright); white-space:nowrap;}
+  .note{font-size:.8rem; color:var(--dim); margin-top:8px;}
+  .pill{
+    font-size:.72rem; padding:1px 7px; border-radius:9px; border:1px solid var(--border);
+    color:var(--dim); margin-right:4px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stray Cat <span class="sub">ep01 — STORY BOARD</span></h1>
+  <div class="tagline">AIアニメ短編 / 15分 / サイバーパンク × 和ファンタジー × 妖怪 — 共同制作者共有用・インタラクティブ資料</div>
+</header>
+<nav>
+  <button class="active" data-tab="overview">概要</button>
+  <button data-tab="characters">登場人物</button>
+  <button data-tab="relmap">相関図</button>
+  <button data-tab="timeline">タイムライン</button>
+  <button data-tab="structure">構造</button>
+</nav>
+
+<main>
+  <!-- ===== OVERVIEW ===== -->
+  <section class="tab active" id="overview">
+    <div class="panel">
+      <h2>ログライン</h2>
+      <p>幼少期に親を失い殺し屋として育てられた化け猫の男・<b>クロキ</b>が、暗殺対象の遺児・<b>ナギ</b>を無意識に庇った瞬間から、忘れていた自分自身を取り戻していく物語。</p>
+      <h3>主題(コントロールアイデア)</h3>
+      <p>人は、自分の中に閉じ込めた過去を、別の存在を守ることによって取り戻す。</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h2>作品仕様</h2>
+        <dl class="kv">
+          <dt>媒体</dt><dd>AIアニメ短編</dd>
+          <dt>尺</dt><dd>15:00(22シーン)</dd>
+          <dt>ジャンル</dt><dd>サイバーパンク × 和ファンタジー × アクション × ドラマ</dd>
+          <dt>三幕構成</dt><dd>Setup 3:45 / Confrontation 6:30 / Resolution 4:45</dd>
+          <dt>続編想定</dt><dd>あり(短編単体で完結する設計)</dd>
+          <dt>応募想定</dt><dd>COLOTEK 2026</dd>
+        </dl>
+      </div>
+      <div class="panel">
+        <h2>世界観の核</h2>
+        <p>巨大なサイバーパンク都市。妖魔と人間が<b>共存</b>している(歴史は浅い)。妖魔は人型を取って暮らし、<b>交雑(ハーフ)</b>も存在する。表層の下では妖魔・人間それぞれの組織が抗争し、街全体が<b>人間側組織の権力闘争</b>の影響下にある。</p>
+        <p class="note">クロキ=化け猫×人間ハーフ / ナギ=人間×白蛇ハーフ — 主役二人がともにハーフであることが鏡像構造の根拠。</p>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>三幕構成</h2>
+      <div class="acts" id="acts-bar"></div>
+      <p class="note">最大の構造特徴: 転後の戦闘も<b>神社で完結</b>。中心地ラボへの移動なし。神社=「妖魔と人間が同じ神を拝んできた古層」で、人間が作った偽神=イザナと戦う構図に集約。</p>
+    </div>
+    <div class="panel">
+      <h2>ラストモノローグ(確定文)</h2>
+      <p style="font-style:italic;color:var(--bright);">組織を裏切った。どこにも帰れない。<br>それでも、この子を守った瞬間、俺は、ようやく、自分を生き始めた。</p>
+    </div>
+  </section>
+
+  <!-- ===== CHARACTERS ===== -->
+  <section class="tab" id="characters">
+    <h2>登場人物</h2>
+    <div class="legend" id="char-legend"></div>
+    <div class="char-grid" id="char-grid"></div>
+    <p class="note">カードをクリックすると三層設計(内面 / 関係性 / ビジュアル)の詳細が開きます。</p>
+  </section>
+
+  <!-- ===== RELATIONSHIP MAP ===== -->
+  <section class="tab" id="relmap">
+    <h2>相関図</h2>
+    <p class="note" style="margin-bottom:14px;">ノードにマウスを乗せると、そのキャラに繋がる関係だけがハイライトされます。クリックで人物詳細。</p>
+    <div id="relmap-wrap">
+      <svg id="relmap-svg"></svg>
+      <div id="relmap-zones"></div>
+    </div>
+    <div class="rel-legend" id="rel-legend"></div>
+  </section>
+
+  <!-- ===== TIMELINE ===== -->
+  <section class="tab" id="timeline">
+    <h2>タイムライン(22シーン)</h2>
+    <p class="note" style="margin-bottom:14px;">
+      <span class="pill" style="border-color:var(--gold);color:var(--gold);">金枠</span>主要転換点 /
+      シーンカードをクリックで詳細(出来事・登場人物・モチーフ)を展開。
+    </p>
+    <div id="timeline-body"></div>
+  </section>
+
+  <!-- ===== STRUCTURE ===== -->
+  <section class="tab" id="structure">
+    <h2>主要転換点</h2>
+    <div class="turn-list" id="turn-list"></div>
+
+    <h2 style="margin-top:30px;">動機 / 謎のカーブ</h2>
+    <div class="curve">
+      <div class="ttl">動機・目的のカーブ</div>
+      <code>SC-01-02 任務遂行</code> → <code>SC-03-08 体が動く(不明)</code> → <code>SC-08-16 二層目的(届ける+破壊する)</code> → <code>SC-16-19 元仲間の死→能動的破壊実行</code> → <code>SC-19-22「自分で守る」</code>
+    </div>
+    <div class="curve">
+      <div class="ttl">A謎「なぜクロキは守ったのか?」</div>
+      植え付け <code>SC-03</code> → 育成 <code>SC-04-08</code> → ピーク <code>SC-15</code>(ヤタの問い) → 開示 <code>SC-21</code>(過去の自分=ナギ)
+    </div>
+    <div class="curve">
+      <div class="ttl">B謎「ナギは何者か?」</div>
+      植え付け <code>SC-07</code>(サギの動揺) → 育成 <code>SC-11</code>(小発動) → 開示 <code>SC-19</code>(白蛇フル発現+増幅)
+    </div>
+    <div class="curve">
+      <div class="ttl">C謎「誰が依頼を出したのか?」(続編駆動)</div>
+      育成 <code>SC-12 / SC-16</code> → 部分開示 <code>SC-18</code>(リュウジ現場登場) → 残置 <code>SC-22</code>(クズハの尾+幹部Cの影)
+    </div>
+
+    <h2 style="margin-top:30px;">モチーフ出現マップ</h2>
+    <div class="panel" style="padding:14px 20px;">
+      <table class="motif-table" id="motif-table"></table>
+    </div>
+  </section>
+</main>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+/* ============================================================
+   DATA — ここを編集すれば全図表に反映されます
+   ============================================================ */
+
+// 陣営の定義(色とラベル)
+const FACTIONS = {
+  'youma-org': {label:'妖魔組織(殺し屋)', color:'#34e0e0'},
+  'human-org': {label:'人間側組織', color:'#e0594a'},
+  'mercenary': {label:'雇われ妖魔', color:'#9a6ad0'},
+  'artificial':{label:'人造(生物兵器)', color:'#d4a843'},
+  'neutral':   {label:'中立', color:'#4ac88a'},
+  'catalyst':  {label:'触媒 / 被害者', color:'#e8e8f0'},
+};
+
+// 登場人物
+const characters = [
+  {
+    id:'kuroki', name:'クロキ', role:'主人公', faction:'youma-org',
+    species:'化け猫×人間ハーフ', age:'30代後半〜40代前半',
+    arc:'Positive(覚醒・再生)', ability:'圧倒的なスピード / 変化(化け猫)',
+    fate:'生存 — 組織を裏切り、ナギと共に街へ降りていく',
+    summary:'妖魔組織の実行部隊の中心メンバー。本作の視点キャラ。標的の遺児ナギを無意識に庇い、組織を裏切る。',
+    inner:'Want=任務の完璧遂行→理由不明のままナギを守る→自分の選択を肯定すること。Need=幼少期の親喪失と「ごめんなさい」の感情への蓋を解き、忘れた自分と再会すること。信じている嘘=「俺は殺戮マシンだ、それで完結している」。',
+    relations:'クズハ(育ての親・上司、SC-03で初めて命令を拒否)/ ガク・ヤタ(元兄弟分、SC-16で目の前で殺される)/ ナギ(標的の遺児→守る対象→鏡像→共闘者)/ サギ先生(過去の繋がりの示唆)。',
+    visual:'しなやかなシルエット、耳の付け根に毛並み。和装ベースのサイバーパンク(黒・濃紺・銀)。右脚はサイバネティクス義足(SC-04で損傷、SC-19の増幅で一時上書き、SC-20で安定)。寡黙・低い嗄れ声。',
+  },
+  {
+    id:'nagi', name:'ナギ', role:'少年 / 物語の触媒', faction:'catalyst',
+    species:'人間×白蛇ハーフ', age:'12歳',
+    arc:'Flat(信頼の萌芽までが到達点)', ability:'増幅(強い情動+物理接触で発動・本人は無自覚)',
+    fate:'生存 — クロキの手を握り、二人で街へ',
+    summary:'幹部A・朝倉ジンの息子。クロキの「過去の自分」の鏡像。能力発動時に白蛇の特徴が一部発現する。',
+    inner:'Want=父の死の自責から逃れたい→クロキを失いたくない。Need=父を救えなかった自責を直視し、「守りたい者」になれると知ること(萌芽まで)。True Character=父の遺体に縋り「ごめんなさい」と漏らす瞬間の自責。',
+    relations:'父=朝倉ジン(隠れ方を教えた人、死を予期していた)/ 母=故・白蛇の妖魔(続編温存)/ クロキ(父の殺害者→守ってくれる人→守りたい人)/ サギ先生(信頼の入口)。',
+    visual:'通常時は完全な人間の見た目、髪は漆黒・目は琥珀(クロキと同じ=伏線)。白の和装、黒のクロキと視覚コントラスト。能力発現は3段階:微発現(目の揺らぎ)→部分(縦瞳孔+白い筋)→フル(首筋の鱗模様)。',
+  },
+  {
+    id:'sagi', name:'サギ先生', role:'クリニック医師', faction:'neutral',
+    species:'人間', age:'初老(60代前後)',
+    arc:'—(本作では一度の登場)', ability:'妖魔・人間両方の診療 / 義足の調整',
+    fate:'生存 — 続編で再登場の可能性',
+    summary:'スラム裏路地の個人診療所。渋く頼りになる+飄々。重い情報を世間話のように軽く吐く。',
+    inner:'善意・誠実だが、権力構造の上層は知らない。確信を持って「あれを止めるか街を出るか — 二つに一つだな」と告げ、クロキに能動的破壊の動機を与える。',
+    relations:'クロキ(腕の縫合+右脚義足の応急処置=過去の関わりの示唆、続編温存)/ ナギ(白蛇の微発現を診察中に見るが口に出さない)。',
+    visual:'細身長身、白髪混じり、長い指、和装の上に古い白衣、片眼鏡(モノクル)。長い首は鷺の連想。',
+  },
+  {
+    id:'gaku', name:'ガク', role:'元仲間1(パワー型)', faction:'youma-org',
+    species:'キモ妖怪', age:'40代の巨漢',
+    arc:'—', ability:'鉄塊使い / 鱗の防御',
+    fate:'死亡 — SC-16でイザナの風刃に斬殺される',
+    summary:'妖魔組織の元仲間。クロキと殴り合う兄弟分だが、ボスに気に入られるクロキへの嫉妬・ライバル心を持つ。',
+    inner:'好戦的・暴力剥き出し。「裏切る前に、俺と決着つけろ」。嫉妬を抱えながらも、根は組織=家族を信じている。',
+    relations:'クロキ(嫉妬・ライバル心)/ クズハ(「母さん」と呼ぶ)/ ヤタ(連携の相方)。',
+    visual:'不揃いな鱗、重い和装、鉄塊。SC-01屋根集合の左翼、SC-02で正面陽動担当。',
+  },
+  {
+    id:'yata', name:'ヤタ', role:'元仲間2(知略型)', faction:'youma-org',
+    species:'八咫烏', age:'30代前半',
+    arc:'—', ability:'飛行 / 二刀の刃技 / 額の第三の目',
+    fate:'死亡 — SC-16でイザナの電撃に貫かれる',
+    summary:'妖魔組織の元仲間。クロキを「兄者」と呼ぶ知略型のバディ。SC-03でナギを殺そうとし、SC-15で「お前、なぜだ」と問う。',
+    inner:'知略型・観察者・冷静。答えのない問いに耐えられない性質。戦いながらもバディとしての戸惑い(刃を引く一瞬)を持つ。',
+    relations:'クロキ(「兄者」、言葉を交わす関係)/ ガク(連携の相方)/ クズハ(命令系統)。',
+    visual:'黒い羽が背中から肩へ流れる和装、漆黒の髪、額の第三の目(戦闘で開く)、三本爪の細い和靴。',
+  },
+  {
+    id:'omote', name:'能面三兄弟', role:'雇われ妖魔', faction:'mercenary',
+    species:'かまいたち三体(本作では能面のまま正体温存)', age:'—',
+    arc:'—', ability:'風刃 / 三体連携 / 機械質の声',
+    fate:'生存 — SC-09の遭遇後は追わず立ち尽くす(続編温存)',
+    summary:'人間側組織(幹部B)に雇われた妖魔。若男・般若・翁の能面、色違いの同型和装。情緒のない機械的な殺戮者。',
+    inner:'情緒なし(=元仲間ガク・ヤタとの対比)。連携プレイの達人。本作内では能面を外さず、正体・動機は続編温存。',
+    relations:'狛江リュウジ(雇用関係)/ クロキ&ナギ(SC-09で追跡、半円で路地を塞ぐ)。',
+    visual:'能面(若男=青 / 般若=紅 / 翁=金)、同型の和装。屋根上から無音で現れる。',
+  },
+  {
+    id:'kuzuha', name:'クズハ', role:'妖魔組織のボス(九尾)', faction:'youma-org',
+    species:'九尾(妖怪)', age:'妖艶な大人の女性',
+    arc:'—(続編温存)', ability:'組織の最高指揮官 / 直接戦わない',
+    fate:'生存 — 本作では音声と遠景の尾のみ、続編で対峙',
+    summary:'妖怪殺し屋組織のボス、クロキの育ての親。本作では音声通信と回想と遠景の尾でのみ登場。',
+    inner:'賢さと強さ、内に秘めた深い愛情。葛の葉伝説=子を残して去る母狐 → クロキを失う未来を内包(続編駆動)。',
+    relations:'クロキ・ガク・ヤタ(拾って育てた擬似家族)/ 氷見ヒロシ(依頼を受ける関係)。',
+    visual:'本作では非表示。SC-01-03は音声通信、SC-14は回想の影の手、SC-22は遠景に九つの尾の輪郭が一瞬。',
+  },
+  {
+    id:'jin', name:'朝倉 ジン', role:'幹部A(ナギの父)', faction:'human-org',
+    species:'人間', age:'50代',
+    arc:'—', ability:'人間側組織の主要幹部 / 正統派',
+    fate:'死亡 — SC-02でクロキに暗殺される',
+    summary:'人間側組織の正統派幹部。バランス重視でボスの信頼厚い。妖魔との共存路線を維持しようとしていた。',
+    inner:'ナギ(増幅能力を持つ白蛇ハーフ)を守ろうとし、死を予期していた。書斎に生物兵器の資料を保管(=幹部Bの企みを知っていた暗示)。',
+    relations:'ナギ(息子、隠れ方を教えた)/ 狛江リュウジ(派閥対立)/ 氷見ヒロシ(失脚を狙われる)。',
+    visual:'SC-02暗殺シーン、振り返った瞬間「ああ、来たか」(諦観の表情)。暗殺後は登場しない(真相は続編温存)。',
+  },
+  {
+    id:'ryuji', name:'狛江 リュウジ', role:'幹部B(生物兵器開発者)', faction:'human-org',
+    species:'人間', age:'50前後',
+    arc:'—', ability:'生物兵器イザナの開発・運用',
+    fate:'逃走 — SC-19で鳥居の影に逃走、生死不明(続編温存)',
+    summary:'人間側組織の暴力支配派幹部。下剋上を狙い、生物兵器イザナを開発。ナギの増幅能力を起動鍵として狙う。',
+    inner:'軽い口調と動揺で類型化を回避。「動け、イザナ」とイザナを操る。SC-19で計画頓挫し「いや、なぜ、起動鍵が......」と逃走。',
+    relations:'イザナ(開発・運用)/ 能面三兄弟(雇用)/ 朝倉ジン(派閥対立・下剋上)。',
+    visual:'中年、白衣に黒のロングコート、痩身、デジタルクリップボード。SC-16で鳥居を砕いて現場登場。',
+  },
+  {
+    id:'himi', name:'氷見 ヒロシ', role:'幹部C(真の黒幕)', faction:'human-org',
+    species:'人間', age:'—',
+    arc:'—(完全に続編温存)', ability:'暗躍 / 他幹部の失脚を狙う',
+    fate:'不明 — 本作では姿を現さない',
+    summary:'人間側組織の暗躍型幹部=真の黒幕。妖魔組織(クズハ)に「幹部A暗殺+生物兵器無力化」を依頼した張本人。',
+    inner:'幹部Aと幹部Bの両方の失脚を狙う。本作内では完全に姿を現さず、SC-22ラストで別の屋根にコートの影が一瞬。',
+    relations:'クズハ(依頼を出す)/ 朝倉ジン・狛江リュウジ(両方の失脚を狙う)。',
+    visual:'本作では非表示。SC-22ラストショットで別の屋根に「コートの影」として一瞬示唆(続編駆動)。',
+  },
+  {
+    id:'izana', name:'イザナ', role:'生物兵器(最終戦闘相手)', faction:'artificial',
+    species:'人造 / 妖魔能力凝縮の生物兵器', age:'—',
+    arc:'—', ability:'四腕(風刃・電撃・他2腕は続編温存)/ 巨体に似合わぬ速度',
+    fate:'撃破 — SC-19でクロキに丹田の核を刺され崩落',
+    summary:'狛江リュウジが開発した生物兵器。妖魔能力を凝縮した5〜8mの仏像/神像型。起動鍵はナギの増幅能力。',
+    inner:'声を持たない、咆哮しない静かな怪物。動作時に鐘の余韻のような低音。「人間が神を作ろうとした傲慢」の視覚化。',
+    relations:'狛江リュウジ(開発者・操縦者)/ ガク・ヤタ(SC-16で殺害)/ クロキ&ナギ(SC-17-19で最終戦闘)。',
+    visual:'結跏趺坐から立ち上がる四腕の神像。銅像の緑青色+隙間から覗く赤黒い肉、体表に電脳コード。倒れると砕けた仏頭+四腕が地に並ぶ。',
+  },
+  {
+    id:'haha', name:'ナギの母', role:'故人(白蛇の妖魔)', faction:'catalyst',
+    species:'白蛇の妖魔', age:'—',
+    arc:'—(完全に続編温存)', ability:'—',
+    fate:'故人 — 直接登場せず',
+    summary:'ナギの母。共存社会で人間姿で暮らしていた白蛇の妖魔。既に故人。',
+    inner:'続編温存。',
+    relations:'ナギ(母)/ 朝倉ジン(夫)。クロキが化けた「偶然似た一般的な母親像」(SC-05)に内包される。',
+    visual:'直接登場しない。本作では感情装置を発動させず温存。',
+  },
+];
+
+// 相関図の関係線(from/to は characters の id)
+// type: command(命令/依頼) / kill(暗殺/殺害) / bond(絆/守る/友愛) / family(親子) / build(開発/雇用) / care(治療/助言) / envy(嫉妬) / hunt(追跡) / rival(派閥対立)
+const relations = [
+  {from:'himi', to:'kuzuha', label:'依頼', type:'command'},
+  {from:'kuzuha', to:'kuroki', label:'命令(育ての親)', type:'command'},
+  {from:'kuzuha', to:'gaku', label:'命令(育ての親)', type:'command'},
+  {from:'kuzuha', to:'yata', label:'命令(育ての親)', type:'command'},
+  {from:'kuroki', to:'jin', label:'暗殺', type:'kill'},
+  {from:'jin', to:'nagi', label:'親子', type:'family'},
+  {from:'haha', to:'nagi', label:'親子(故人)', type:'family'},
+  {from:'kuroki', to:'nagi', label:'守る / 鏡像', type:'bond'},
+  {from:'nagi', to:'kuroki', label:'増幅で支える', type:'bond'},
+  {from:'sagi', to:'kuroki', label:'治療 / 助言', type:'care'},
+  {from:'gaku', to:'kuroki', label:'嫉妬・ライバル心', type:'envy'},
+  {from:'yata', to:'kuroki', label:'兄者(友愛)', type:'bond'},
+  {from:'ryuji', to:'izana', label:'開発・運用', type:'build'},
+  {from:'ryuji', to:'omote', label:'雇用', type:'build'},
+  {from:'izana', to:'gaku', label:'殺害', type:'kill'},
+  {from:'izana', to:'yata', label:'殺害', type:'kill'},
+  {from:'ryuji', to:'jin', label:'派閥対立(下剋上)', type:'rival'},
+  {from:'himi', to:'jin', label:'失脚を狙う', type:'rival'},
+  {from:'himi', to:'ryuji', label:'失脚を狙う', type:'rival'},
+  {from:'omote', to:'kuroki', label:'追跡', type:'hunt'},
+];
+
+const REL_TYPES = {
+  command:{label:'命令 / 依頼', color:'#d4a843'},
+  kill:   {label:'暗殺 / 殺害', color:'#e0594a'},
+  bond:   {label:'絆 / 守る / 友愛', color:'#4ac88a'},
+  family: {label:'親子', color:'#b8c0d0'},
+  build:  {label:'開発 / 雇用', color:'#9a6ad0'},
+  care:   {label:'治療 / 助言', color:'#34e0e0'},
+  envy:   {label:'嫉妬', color:'#e045a0'},
+  hunt:   {label:'追跡', color:'#e0594a'},
+  rival:  {label:'派閥対立', color:'#e0904a'},
+};
+
+// 相関図のゾーン配置(縦の段) — id を並べる
+const REL_ZONES = [
+  {label:'人間側組織', ids:['himi','jin','ryuji']},
+  {label:'人造 / 雇われ妖魔', ids:['izana','omote']},
+  {label:'中央 — 視点と触媒', ids:['kuroki','nagi','sagi']},
+  {label:'妖魔組織(殺し屋)', ids:['kuzuha','gaku','yata']},
+  {label:'故人', ids:['haha']},
+];
+
+// 三幕構成
+const ACTS = [
+  {lbl:'ACT 1', nm:'Setup', dur:'3:45', parts:'起(0:00-2:15) / 承前(2:15-3:45)'},
+  {lbl:'ACT 2', nm:'Confrontation', dur:'6:30', parts:'承中 / 承後 / 転前(3:45-10:30)'},
+  {lbl:'ACT 3', nm:'Resolution', dur:'4:45', parts:'転後(神社) / 結(10:30-15:00)'},
+];
+
+// 22シーン
+const PARTS = ['起','承前','承中','承後','転前','転後','結'];
+const PART_DUR = {'起':'0:00-2:15','承前':'2:15-3:45','承中':'3:45-5:45','承後':'5:45-7:15','転前':'7:15-10:30','転後':'10:30-13:15','結':'13:15-15:00'};
+
+const scenes = [
+  {id:'SC-01',part:'起',dur:'0:30',title:'都市と影',turning:'',
+   event:'都市俯瞰・雨上がりのネオン。高層ビル屋上で三人組が無言で集合。イヤホン越しにクズハの音声「対象、確認したか」。',
+   chars:['クロキ','ガク','ヤタ','クズハ(音声)'],motifs:['雨/ネオン','影','クズハの声']},
+  {id:'SC-02',part:'起',dur:'1:00',title:'絹と刃',turning:'Inciting Incident',
+   event:'朝倉邸潜入。クロキは通常姿でスパイアクション、ヤタは上空監視、ガクは正面陽動。クロキが生物兵器の資料・写真を発見。朝倉ジン「ああ、来たか」→暗殺。',
+   chars:['クロキ','ガク','ヤタ','朝倉ジン','セキュリティ','クズハ(音声)'],motifs:['影','資料(伏線)','諦観']},
+  {id:'SC-03',part:'起',dur:'0:45',title:'ごめんなさい',turning:'PP1',
+   event:'ヤタがナギを発見し急降下、刃を振り下ろす。クロキの体が勝手に動きヤタの刃を腕で受け止める。クズハ「子供は始末しろ」→クロキ応答しない。ナギを抱え窓外へ。',
+   chars:['クロキ','ヤタ','ナギ','クズハ(音声)'],motifs:['「ごめんなさい」#1','手#1(受止)','第三の目']},
+  {id:'SC-04',part:'承前',dur:'0:45',title:'落下と損傷',turning:'',
+   event:'高層ビルから落下。壁伝いに減速するが最終着地で右脚義足を損傷(火花)。損傷を引きずりながらスラム街へスピード逃亡。',
+   chars:['クロキ','ナギ','屋台店主'],motifs:['スピード(劣化)','右脚義足損傷#1','雨/ネオン']},
+  {id:'SC-05',part:'承前',dur:'0:30',title:'母の貌',turning:'',
+   event:'監視ゲート。クロキが一般的な母親像に化け、ナギの手を引いて通過。関係性は誘拐犯と被害者のまま。通過後の無言の一拍。',
+   chars:['クロキ(母姿)','ナギ','検問担当'],motifs:['化け#1(母姿)','母(無言の感情装置)','監視社会']},
+  {id:'SC-06',part:'承前',dur:'0:15',title:'戻る貌',turning:'',
+   event:'廃店舗に避難。クロキ、母姿から元の姿に戻る。ナギは無言で離れて壁に背をつける。右脚から火花。',
+   chars:['クロキ','ナギ'],motifs:['化け解除','右脚義足損傷#2','距離']},
+  {id:'SC-07',part:'承中',dur:'0:45',title:'縫合',turning:'',
+   event:'スラム裏のクリニック。サギ先生がクロキの腕を縫い、右脚義足にも応急処置。診察中、ナギの目に一瞬の白い揺らぎ。サギの片眼鏡の奥がわずかに動く。',
+   chars:['クロキ','サギ','ナギ'],motifs:['手#2(縫う)','白蛇#1(微発現)']},
+  {id:'SC-08',part:'承中',dur:'0:30',title:'二つに一つ',turning:'',
+   event:'サギ「保護施設は紹介できる。だが、私は預かれん」「あれを止めるか、街を出るか — 二つに一つだな」=動機二層提示。',
+   chars:['クロキ','サギ','ナギ'],motifs:['監視社会','動機二層提示']},
+  {id:'SC-09',part:'承中',dur:'0:45',title:'能面',turning:'PnP1',
+   event:'クリニック裏路地で能面三兄弟が屋根上から無音で現れ半円で塞ぐ。若男「対象を確認」。クロキは化け猫スピードで逃走。三体は追わず立ち尽くす。',
+   chars:['クロキ','ナギ','能面三兄弟'],motifs:['スピード(劣化)','能面の不気味','両側から狙われる構造']},
+  {id:'SC-10',part:'承後',dur:'0:30',title:'食うか?',turning:'',
+   event:'スラムの一室。粥にナギ困惑。クロキはドブネズミを焼いて「食うか?」と差し出す。ナギ苦笑い=絆の芽。シリアスの中の一瞬のコメディ。',
+   chars:['クロキ','ナギ'],motifs:['食(対比:上品/泥)','手#3','コメディの一瞬']},
+  {id:'SC-11',part:'承後',dur:'0:45',title:'今、何をした',turning:'MP',
+   event:'ナギがクロキの腕の縫い目に手を重ねる→白蛇#2発現→傷が一瞬で塞がる。クロキ「おい、今、何をした」/ナギ「......?」/瞳孔収縮→耳ぴくり。',
+   chars:['クロキ','ナギ'],motifs:['手#4(重ね・増幅)','白蛇#2','瞳孔/耳']},
+  {id:'SC-12',part:'承後',dur:'0:15',title:'足音',turning:'',
+   event:'クロキ「立て」。窓の外、屋根を渡る重く等間隔の足音(=ガクの予兆)。',
+   chars:['クロキ','ナギ'],motifs:['影','襲撃予兆']},
+  {id:'SC-13',part:'転前',dur:'0:45',title:'嫉妬の鉄塊',turning:'',
+   event:'廃神社の境内。ガクが鉄塊を担いで現れる。好戦的な嫉妬「ボスに気に入られていい気になってたな」「裏切る前に俺と決着つけろ」。戦闘(クロキは右脚損傷でスピード制限)。',
+   chars:['クロキ','ガク','ナギ'],motifs:['神社','嫉妬','スピード/パワー','礫(伏線)']},
+  {id:'SC-14',part:'転前',dur:'0:30',title:'食卓の影',turning:'',
+   event:'フラッシュバック(温色光・影シルエット):古い和家屋・クズハの手・幼いクロキ・ガク・ヤタ。幼いクロキが座敷の輪から一歩外に出る。',
+   chars:['(回想)クロキ','ガク','ヤタ','クズハ'],motifs:['影','家族','手#5(クズハ)','距離']},
+  {id:'SC-15',part:'転前',dur:'0:45',title:'お前、なぜだ',turning:'PP2',
+   event:'ヤタが鳥居の上から舞い降りる。第三の目が開く。戦いながらも刃を引く一瞬(バディの戸惑い)。クロキ丸腰。ヤタ「お前、なぜだ、クロキ」/クロキ応えられない。',
+   chars:['クロキ','ヤタ','ナギ'],motifs:['影','羽','「なぜ?」','バディの戸惑い']},
+  {id:'SC-16',part:'転前',dur:'1:00',title:'砕ける鳥居',turning:'AIL + Break into 3',
+   event:'クロキが二人を寸止めで捻じ伏せ立ち去ろうとする→鳥居が砕けイザナとリュウジ登場→イザナの腕がガクとヤタを殺す(目の前で)→リュウジ「動け、イザナ」=戦闘開始。',
+   chars:['クロキ','ガク†','ヤタ†','ナギ','イザナ','リュウジ'],motifs:['鳥居の崩壊','家族喪失','激昂','神像の出現']},
+  {id:'SC-17',part:'転後',dur:'0:30',title:'構え',turning:'',
+   event:'クロキvsイザナ。倒れたガクとヤタを背にして構える。リュウジ「面白い、損傷した足でどこまで持つか見せてみろ」。イザナが結跏趺坐から立ち上がり四腕展開。',
+   chars:['クロキ','イザナ','ナギ','リュウジ'],motifs:['神像','四腕','戦闘準備']},
+  {id:'SC-18',part:'転後',dur:'0:45',title:'大と小',turning:'',
+   event:'戦闘開始。クロキは右脚損傷+精神的衝撃で本来の動きが出ない。イザナの風刃と電撃を捌ききれず本殿の柱に叩きつけられる。ナギは固まる。',
+   chars:['クロキ','イザナ','ナギ','リュウジ'],motifs:['大vs小','四腕(2腕提示)','義足の限界']},
+  {id:'SC-19',part:'転後',dur:'1:15',title:'礫と核',turning:'ビジュアルCL',
+   event:'ナギがクロキの胸に手を置き「死なないで」→白蛇フル発現→クロキ増幅(義足損傷も上書き)→飛び石・狛犬の破片を蹴り上げ、クロキ自身が礫に化けて投擲軌道に紛れる→風刃の死角を擦り抜けイザナの懐へ→人型に戻り丹田の核を刺す→静かに崩落。リュウジ逃走。',
+   chars:['クロキ','ナギ','イザナ†','リュウジ'],motifs:['手#6(胸・大増幅)','白蛇#3(フル)','化け#2(礫フェイント)','神像の崩落']},
+  {id:'SC-20',part:'結',dur:'0:30',title:'藍の屋根',turning:'',
+   event:'古い和瓦のビルの屋根、雨止み・藍。二人棟の上に距離を置いて座る。ナギ独白2節「父さんが死ぬことは知ってました」「もう少し上手く隠れていたら......」。',
+   chars:['クロキ','ナギ'],motifs:['藍','瓦の波','雨止み','義足の安定']},
+  {id:'SC-21',part:'結',dur:'1:00',title:'想起',turning:'物語CL',
+   event:'ナギ「ごめんなさい。あなたを巻き込みました」→クロキ呼吸止まる→フラッシュ(影・無音・親喪失)→ナギの輪郭に幼い自分が重なる→内声「この子は、あの時の、俺だ」「俺は、この子の父を、殺した」→右手の指がナギの方へ伸びかける。',
+   chars:['クロキ','ナギ','(回想)幼いクロキ・親'],motifs:['「ごめんなさい」#2','影','手#7(集約9動詞)','橙']},
+  {id:'SC-22',part:'結',dur:'0:30',title:'降りていく',turning:'',
+   event:'クロキがナギに手を差し出す→ナギ握る→VO「組織を裏切った。どこにも帰れない」「それでも、この子を守った瞬間、俺は、ようやく、自分を生き始めた」→降りていく俯瞰。遠くにクズハの尾、別方角にコートの影(幹部C)。タイトル『Stray Cat』。',
+   chars:['クロキ','ナギ','(遠景)クズハ','幹部C'],motifs:['朝(両義性)','手#8(差し出す/握る)','降りる','タイトル']},
+];
+
+// 主要転換点
+const transitions = [
+  {time:'0:30',fn:'Inciting Incident',sc:'SC-02',desc:'朝倉ジンを暗殺(冷酷な実行能力提示)'},
+  {time:'1:30',fn:'PP1',sc:'SC-03',desc:'ナギの「ごめんなさい」→ クロキの体が動く、組織から離脱'},
+  {time:'4:30',fn:'PnP1',sc:'SC-09',desc:'能面三兄弟との遭遇 = 両側から狙われる構造の物理化'},
+  {time:'6:15',fn:'MP',sc:'SC-11',desc:'ナギの小発動 → A筋とB筋の接続点'},
+  {time:'8:30',fn:'PP2',sc:'SC-15',desc:'ヤタ「お前、なぜだ、クロキ」→ 答えられない、謎のピーク'},
+  {time:'9:30',fn:'AIL + Break into 3',sc:'SC-16',desc:'元仲間撃破→イザナ&リュウジ登場→元仲間殺害→戦闘開始'},
+  {time:'11:30',fn:'ビジュアルCL',sc:'SC-19',desc:'イザナ撃破、ナギの大発動、礫フェイント'},
+  {time:'14:00',fn:'物語CL',sc:'SC-21',desc:'アナグノリシス(過去の自分との再会)'},
+];
+
+// モチーフ出現マップ
+const motifs = [
+  {name:'「ごめんなさい」',scenes:'SC-03 / SC-21',fn:'引き金と想起の対応(完全な円環)'},
+  {name:'化け(変化)',scenes:'SC-05(母姿) / SC-19(礫フェイント)',fn:'能力の2用途定着'},
+  {name:'白蛇(ナギ)',scenes:'SC-07 / SC-11 / SC-19',fn:'能力の三段階蓄積(微細→部分→フル)'},
+  {name:'手',scenes:'SC-03/07/10/11/13/14/19/21/22',fn:'起から結への連鎖変容、SC-21で9動詞集約'},
+  {name:'影 / シルエット',scenes:'SC-01/02/05/09/14/15/21/22',fn:'暗殺と想起の視覚的同一化'},
+  {name:'右脚の義足損傷',scenes:'SC-04 → SC-19(上書き) → SC-20(安定)',fn:'クロキの身体的弱点と回収'},
+  {name:'クズハの声 / 影',scenes:'SC-01-03(音声) / SC-14(回想) / SC-22(遠景の尾)',fn:'司令塔の存在感+続編駆動'},
+  {name:'神社(共存の古層)',scenes:'SC-13〜SC-19',fn:'偽神イザナとの対決の場'},
+  {name:'兄者 / 母さん(擬似家族)',scenes:'SC-14 / SC-15-16',fn:'妖魔組織=家族の言葉化、SC-16で断たれる'},
+  {name:'監視社会',scenes:'SC-05 / SC-08 / SC-09',fn:'反転点(届け先がない)の構造的根拠'},
+  {name:'「諦観」(朝倉ジン)',scenes:'SC-02-03',fn:'父の死を予期していた事実根拠'},
+  {name:'朝の光(両義性)',scenes:'SC-22',fn:'救済ではなく「降りていく先」'},
+];
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const el = (tag,cls,html) => {const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
+
+// --- Tabs ---
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    $('#'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='relmap') setTimeout(drawRelMap,50);
+  };
+});
+
+// --- Overview: acts bar ---
+ACTS.forEach(a=>{
+  const d=el('div','act');
+  d.innerHTML=`<div class="lbl">${a.lbl}</div><div class="nm">${a.nm}</div>
+    <div class="dur">${a.dur}</div><div class="parts">${a.parts}</div>`;
+  $('#acts-bar').appendChild(d);
+});
+
+// --- Characters ---
+const charById = Object.fromEntries(characters.map(c=>[c.id,c]));
+// legend
+Object.entries(FACTIONS).forEach(([k,v])=>{
+  const s=el('span',null,`<i style="background:${v.color}"></i>${v.label}`);
+  $('#char-legend').appendChild(s);
+});
+// cards
+characters.forEach(c=>{
+  const fc=FACTIONS[c.faction].color;
+  const card=el('div','char-card');
+  card.style.borderLeftColor=fc;
+  const fateColor = c.fate.startsWith('死亡')?'var(--red)':c.fate.startsWith('逃走')||c.fate.startsWith('不明')?'var(--gold)':c.fate.startsWith('故人')?'var(--dim)':'var(--green)';
+  card.innerHTML=`<div class="nm">${c.name}</div><div class="ro">${c.role}</div>
+    <div class="sp">${c.species} ／ ${c.age}</div>
+    <div style="margin-top:6px;"><span class="badge" style="border-color:${fc};color:${fc};">${FACTIONS[c.faction].label}</span></div>
+    <div class="fate" style="color:${fateColor};">▸ ${c.fate}</div>`;
+  card.onclick=()=>openCharModal(c);
+  $('#char-grid').appendChild(card);
+});
+
+function openCharModal(c){
+  const fc=FACTIONS[c.faction].color;
+  $('#modal').innerHTML=`
+    <button class="close" onclick="closeModal()">×</button>
+    <div style="font-size:1.6rem;color:var(--bright);font-weight:600;">${c.name}</div>
+    <div style="color:var(--cyan);margin-bottom:4px;">${c.role}</div>
+    <span class="badge" style="border-color:${fc};color:${fc};">${FACTIONS[c.faction].label}</span>
+    <dl class="kv" style="margin-top:14px;">
+      <dt>種族</dt><dd>${c.species}</dd>
+      <dt>年齢</dt><dd>${c.age}</dd>
+      <dt>能力</dt><dd>${c.ability}</dd>
+      <dt>アーク</dt><dd>${c.arc}</dd>
+      <dt>本作での結末</dt><dd>${c.fate}</dd>
+    </dl>
+    <h3>概要</h3><p>${c.summary}</p>
+    <h3>内面層</h3><p>${c.inner}</p>
+    <h3>関係性層</h3><p>${c.relations}</p>
+    <h3>ビジュアル層</h3><p>${c.visual}</p>`;
+  $('#modal-bg').classList.add('open');
+}
+function closeModal(){$('#modal-bg').classList.remove('open');}
+$('#modal-bg').onclick=e=>{if(e.target===$('#modal-bg'))closeModal();};
+
+// --- Relationship Map ---
+const zonesWrap=$('#relmap-zones');
+REL_ZONES.forEach(z=>{
+  const zd=el('div','rel-zone');
+  zd.appendChild(el('div','rel-zone-lbl',z.label));
+  const row=el('div','rel-row');
+  z.ids.forEach(id=>{
+    const c=charById[id]; if(!c)return;
+    const fc=FACTIONS[c.faction].color;
+    const n=el('div','node');
+    n.dataset.id=id;
+    n.style.borderColor=fc;
+    n.innerHTML=`<div class="nm">${c.name}</div><div class="ro">${c.role}</div>`;
+    n.onmouseenter=()=>highlightNode(id);
+    n.onmouseleave=()=>{highlightNode(null);};
+    n.onclick=()=>openCharModal(c);
+    row.appendChild(n);
+  });
+  zd.appendChild(row);
+  zonesWrap.appendChild(zd);
+});
+// rel legend
+Object.entries(REL_TYPES).forEach(([k,v])=>{
+  $('#rel-legend').appendChild(el('span',null,`<i style="border-color:${v.color}"></i>${v.label}`));
+});
+
+const svg=$('#relmap-svg');
+function drawRelMap(){
+  const wrap=$('#relmap-wrap');
+  const wb=wrap.getBoundingClientRect();
+  svg.innerHTML='';
+  // arrow defs
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  Object.entries(REL_TYPES).forEach(([k,v])=>{
+    const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+    m.setAttribute('id','ar--'+k); m.setAttribute('markerWidth','9'); m.setAttribute('markerHeight','9');
+    m.setAttribute('refX','8'); m.setAttribute('refY','4.5'); m.setAttribute('orient','auto');
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d','M0,0 L9,4.5 L0,9 Z'); p.setAttribute('fill',v.color);
+    m.appendChild(p); defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+  const nodeRect={};
+  document.querySelectorAll('.node').forEach(n=>{
+    const r=n.getBoundingClientRect();
+    nodeRect[n.dataset.id]={x:r.left-wb.left+r.width/2, y:r.top-wb.top+r.height/2, w:r.width, h:r.height,
+      l:r.left-wb.left, r:r.right-wb.left, t:r.top-wb.top, b:r.bottom-wb.top};
+  });
+  // group parallel edges between same pair
+  const pairCount={};
+  relations.forEach(rel=>{
+    const key=[rel.from,rel.to].sort().join('--');
+    pairCount[key]=(pairCount[key]||0)+1;
+  });
+  const pairSeen={};
+  relations.forEach((rel,idx)=>{
+    const a=nodeRect[rel.from], b=nodeRect[rel.to];
+    if(!a||!b)return;
+    const t=REL_TYPES[rel.type];
+    const key=[rel.from,rel.to].sort().join('--');
+    pairSeen[key]=(pairSeen[key]||0);
+    const total=pairCount[key];
+    const offsetIdx=pairSeen[key]-(total-1)/2;
+    pairSeen[key]++;
+    // edge endpoints: from bottom/top depending on vertical relation
+    let x1=a.x,y1=a.y,x2=b.x,y2=b.y;
+    // trim to node borders roughly
+    const dx=x2-x1, dy=y2-y1, dist=Math.hypot(dx,dy)||1;
+    const ux=dx/dist, uy=dy/dist;
+    x1+=ux*(a.w/2*Math.abs(ux)+a.h/2*Math.abs(uy))*0.85;
+    y1+=uy*(a.w/2*Math.abs(ux)+a.h/2*Math.abs(uy))*0.85;
+    x2-=ux*(b.w/2*Math.abs(ux)+b.h/2*Math.abs(uy))*0.95;
+    y2-=uy*(b.w/2*Math.abs(ux)+b.h/2*Math.abs(uy))*0.95;
+    // curve control offset — ペアの固定向き(sorted)で perp を決め、双方向ペアを明確に左右へ分離
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const sids=[rel.from,rel.to].sort();
+    const SA=nodeRect[sids[0]], SB=nodeRect[sids[1]];
+    const vdx=SB.x-SA.x, vdy=SB.y-SA.y, vd=Math.hypot(vdx,vdy)||1;
+    const pX=-vdy/vd, pY=vdx/vd;
+    const baseCurve=(total===1 && dist>240)?32:0;
+    const curveAmt=offsetIdx*54 + baseCurve;
+    const cx=mx+pX*curveAmt, cy=my+pY*curveAmt;
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke',t.color);
+    path.setAttribute('stroke-width','2');
+    path.style.opacity='0.5';
+    path.setAttribute('marker-end','url(#ar--'+rel.type+')');
+    if(rel.type==='hunt') path.setAttribute('stroke-dasharray','5,4');
+    if(rel.type==='rival') path.setAttribute('stroke-dasharray','2,3');
+    path.dataset.from=rel.from; path.dataset.to=rel.to;
+    path.classList.add('edge');
+    svg.appendChild(path);
+    // label (通常は非表示、ホバー時のみ表示)。曲線上の点を正確に取り、双方向ペアは前後にずらす
+    const labelT = 0.5 + offsetIdx*0.24;
+    const lxp = (1-labelT)*(1-labelT)*x1 + 2*(1-labelT)*labelT*cx + labelT*labelT*x2;
+    const lyp = (1-labelT)*(1-labelT)*y1 + 2*(1-labelT)*labelT*cy + labelT*labelT*y2;
+    const tx=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tx.setAttribute('x',lxp); tx.setAttribute('y',lyp-2);
+    tx.setAttribute('text-anchor','middle');
+    tx.setAttribute('class','edge-label');
+    tx.dataset.from=rel.from; tx.dataset.to=rel.to;
+    tx.textContent=rel.label;
+    tx.style.opacity='0';
+    svg.appendChild(tx);
+  });
+}
+function highlightNode(id){
+  document.querySelectorAll('.node').forEach(n=>{
+    if(!id){n.classList.remove('dim');return;}
+    const connected = relations.some(r=>(r.from===id&&r.to===n.dataset.id)||(r.to===id&&r.from===n.dataset.id)) || n.dataset.id===id;
+    n.classList.toggle('dim',!connected);
+  });
+  svg.querySelectorAll('.edge, .edge-label').forEach(e=>{
+    const isText=e.tagName==='text';
+    if(!id){e.style.opacity=isText?'0':'0.5'; return;}
+    const on = e.dataset.from===id||e.dataset.to===id;
+    e.style.opacity = on?(isText?'1':'0.95'):(isText?'0':'0.06');
+  });
+}
+window.addEventListener('resize',()=>{if($('#relmap').classList.contains('active'))drawRelMap();});
+
+// --- Timeline ---
+PARTS.forEach(p=>{
+  const sec=el('div','tl-part');
+  const hd=el('div','tl-part-hd');
+  hd.innerHTML=`<span class="p-nm">${p}</span><span class="p-dur">${PART_DUR[p]}</span>`;
+  sec.appendChild(hd);
+  const grid=el('div','tl-scenes');
+  scenes.filter(s=>s.part===p).forEach(s=>{
+    const card=el('div','scene-card'+(s.turning?' turning':''));
+    const charBadges=s.chars.map(c=>`<span class="pill">${c}</span>`).join('');
+    const motifBadges=s.motifs.map(m=>`<span class="pill" style="border-color:var(--cyan);color:var(--cyan);">${m}</span>`).join('');
+    card.innerHTML=`
+      <div class="sc-id">${s.id} · ${s.dur}</div>
+      <div class="sc-tt">${s.title}</div>
+      <div class="sc-meta">${s.chars.slice(0,3).join(' / ')}${s.chars.length>3?' ...':''}</div>
+      ${s.turning?`<div class="sc-tp">★ ${s.turning}</div>`:''}
+      <div class="scene-detail">
+        <div class="ev">${s.event}</div>
+        <div class="lbl">登場人物</div><div>${charBadges}</div>
+        <div class="lbl" style="margin-top:5px;">モチーフ</div><div>${motifBadges}</div>
+      </div>`;
+    card.onclick=()=>card.classList.toggle('open');
+    grid.appendChild(card);
+  });
+  sec.appendChild(grid);
+  $('#timeline-body').appendChild(sec);
+});
+
+// --- Structure: transitions ---
+transitions.forEach(t=>{
+  const d=el('div','turn-item');
+  d.innerHTML=`<span class="tm">${t.time}</span><span class="fn">${t.fn}<br><span style="color:var(--dim);font-size:.74rem;">${t.sc}</span></span><span>${t.desc}</span>`;
+  $('#turn-list').appendChild(d);
+});
+// motif table
+$('#motif-table').innerHTML='<tr><th>モチーフ</th><th>出現シーン</th><th>構造機能</th></tr>'+
+  motifs.map(m=>`<tr><td>${m.name}</td><td style="color:var(--cyan);">${m.scenes}</td><td style="color:var(--dim);">${m.fn}</td></tr>`).join('');
+
+// initial
+</script>
+</body>
+</html>
