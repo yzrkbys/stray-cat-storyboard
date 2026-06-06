@@ -218,6 +218,13 @@
   .sp-head{border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:18px;}
   .sp-head .sp-id{color:var(--cyan); font-size:.82rem; letter-spacing:.05em;}
   .sp-head .sp-title{font-family:"Hiragino Mincho ProN",serif; font-size:1.4rem; color:var(--bright); margin-top:2px;}
+  .sp-bgm{margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;}
+  .sp-bgm .sp-bgm-label{color:var(--gold); font-size:.78rem; letter-spacing:.06em; display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .sp-bgm .sp-bgm-label::before{content:'♪'; color:var(--cyan); font-size:1rem;}
+  .sp-bgm audio{height:34px; flex:1; min-width:240px;}
+  .sp-bgm audio::-webkit-media-controls-panel{background:var(--bg2);}
+  .sp-nav-bgm{color:var(--cyan); margin-left:6px; font-size:.78rem;}
   .sp-slug{
     color:var(--gold); font-weight:600; letter-spacing:.04em; margin:20px 0 10px;
     font-size:.92rem; border-left:3px solid var(--gold); padding-left:10px;
@@ -934,6 +941,8 @@ const SCREENPLAY = [
    intent:`10秒で世界の三層(人/妖魔/ハーフ)と二大勢力を提示し、観客の認知コストを開幕で払い切る。説明はナレーションに限定し、本編の地の文では一切「世界観の解説」をしない方針の宣言を兼ねる(P9のナレーション過多は本シーンに集約して隔離)。「表向きは」の一語で、共存という建前と狩り合いという実態の対比(基準E)を最小単位で立てる。映像は雨/ネオンの中核モチーフの初出。色の二分(青白/赤)は、結のSC-22「橙と藍の境」と呼応させる遠い伏線。`},
 
   {id:'SC-01', part:'起', time:'0:10-0:55', title:'始めろ',
+   bgm:'assets/audio/sc01_cyber-ronin-chase.mp3',
+   bgmLabel:'Cyber-Ronin / Chase(最初の襲撃)',
    body:`**【柱】 アマツ財団 アサクラビル・エントランス〜吹き抜け・夜** ※チーム通信はすべて〈念話〉=口を動かさない脳波通信
 ガラスとスチールの高層ビル。一階エントランスの大理石の床に、鳥居型ホログラムの受付サインが青白く浮かんでいる。残業帰りの社員が数人、足早に通り過ぎる。
 柱の影に、クロキが片膝をついて潜んでいる。黒と濃紺と銀の和装が闇に溶け、視線だけが天井のフロア表示を追う。耳の付け根の毛並みが、ぴくりと動いた。
@@ -2179,9 +2188,15 @@ function renderSpScene(id){
   const sc = SCREENPLAY.find(s=>s.id===id);
   if(!sc) return;
   document.querySelectorAll('#sp-nav button').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
+  const bgmHtml = sc.bgm
+    ? `<div class="sp-bgm"><span class="sp-bgm-label">BGM${sc.bgmLabel?' · '+spEsc(sc.bgmLabel):''}</span>`
+      + `<audio controls preload="metadata" src="${spEsc(sc.bgm)}"></audio></div>`
+    : '';
   $('#sp-pane').innerHTML =
     `<div class="sp-head"><div class="sp-id">${spEsc(sc.id)} · ${spEsc(sc.time)} · ${spEsc(sc.part)}</div>`+
-    `<div class="sp-title">${spEsc(sc.title)}</div></div>`+
+    `<div class="sp-title">${spEsc(sc.title)}</div>`+
+    bgmHtml+
+    `</div>`+
     renderSpBody(sc.body)+
     (sc.intent ? `<details class="sp-intent"><summary>演出意図</summary><div class="sp-intent-body">${spEsc(sc.intent)}</div></details>` : '');
 }
@@ -2191,7 +2206,7 @@ function renderSpNav(){
   let html = '', lastPart = null;
   SCREENPLAY.forEach(sc=>{
     if(sc.part !== lastPart){ html += `<div class="sp-nav-group">${spEsc(sc.part)}</div>`; lastPart = sc.part; }
-    html += `<button data-id="${sc.id}"><span class="id">${sc.id}</span>${spEsc(sc.title)}</button>`;
+    html += `<button data-id="${sc.id}"><span class="id">${sc.id}</span>${spEsc(sc.title)}${sc.bgm?'<span class="sp-nav-bgm">♪</span>':''}</button>`;
   });
   nav.innerHTML = html;
   nav.querySelectorAll('button').forEach(b=> b.onclick=()=>renderSpScene(b.dataset.id));
